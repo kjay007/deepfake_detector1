@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepfake Detection System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color) !important;
+        }
+
+        .hero-section {
+            background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%);
+            color: white;
+            padding: 4rem 0;
+        }
+
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+        }
+
+        .upload-area.dragover {
+            background: #e8f0fe;
+            border-color: var(--primary-color);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .result-card {
+            display: none;
+            margin-top: 2rem;
+        }
+
+        .confidence-meter {
+            height: 8px;
+            border-radius: 4px;
+            background: #e9ecef;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .confidence-value {
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.6s ease;
+        }
+
+        .loading-spinner {
+            display: none;
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .custom-alert {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .features-section {
+            padding: 4rem 0;
+            background: white;
+        }
+
+        .how-it-works {
+            padding: 4rem 0;
+        }
+
+        .step-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .step-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shield-alt me-2"></i>
+                DeepFake Detector
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#how-it-works">How it Works</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container text-center">
+            <h1 class="display-4 mb-4">Detect Deepfakes with AI</h1>
+            <p class="lead mb-4">Upload your media and let our advanced AI analyze it for potential manipulation</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        <!-- Upload Section -->
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <h4>Drag & Drop or Click to Upload</h4>
+                    <p class="text-muted">Supported formats: JPG, PNG, MP4</p>
+                    <input type="file" id="fileInput" class="d-none" accept="image/*,video/*">
+                    <div id="preview" class="mt-3"></div>
+                </div>
+
+                <!-- Alert -->
+                <div class="alert alert-danger custom-alert" id="errorAlert" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <span id="errorMessage"></span>
+                </div>
+
+                <!-- Loading -->
+                <div class="text-center mt-4 loading-spinner" id="loadingSpinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Analyzing media...</p>
+                </div>
+
+                <!-- Results Card -->
+                <div class="card result-card" id="resultCard">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Analysis Results</h5>
+                        <div class="confidence-meter">
+                            <div class="confidence-value" id="confidenceBar"></div>
+                        </div>
+                        <p class="mb-2">Confidence Score: <span id="confidenceScore">0</span>%</p>
+                        <div id="resultDetails"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+        <div class="container">
+            <h2 class="text-center mb-5">Key Features</h2>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="text-center">
+                        <i class="fas fa-bolt feature-icon"></i>
+                        <h4>Real-Time Analysis</h4>
+                        <p>Get instant results with our advanced AI algorithms</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="text-center">
+                        <i class="fas fa-chart-line feature-icon"></i>
+                        <h4>High Accuracy</h4>
+                        <p>State-of-the-art detection with detailed confidence scores</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="text-center">
+                        <i class="fas fa-shield-alt feature-icon"></i>
+                        <h4>Secure Processing</h4>
+                        <p>Your media is processed securely and never stored</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it Works -->
+    <section class="how-it-works bg-light" id="how-it-works">
+        <div class="container">
+            <h2 class="text-center mb-5">How It Works</h2>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card step-card">
+                        <div class="card-body text-center">
+                            <div class="step-number mx-auto">1</div>
+                            <h5>Upload Media</h5>
+                            <p>Drop your image or video file into the upload area</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card step-card">
+                        <div class="card-body text-center">
+                            <div class="step-number mx-auto">2</div>
+                            <h5>AI Analysis</h5>
+                            <p>Our advanced AI analyzes the media for manipulation</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card step-card">
+                        <div class="card-body text-center">
+                            <div class="step-number mx-auto">3</div>
+                            <h5>Get Results</h5>
+                            <p>Receive detailed analysis results and confidence score</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const preview = document.getElementById('preview');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const resultCard = document.getElementById('resultCard');
+            const confidenceBar = document.getElementById('confidenceBar');
+            const confidenceScore = document.getElementById('confidenceScore');
+            const resultDetails = document.getElementById('resultDetails');
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Handle drag and drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.add('dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.remove('dragover');
+                });
+            });
+
+            // Handle file selection
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', handleFile);
+            uploadArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const file = dt.files[0];
+                handleFile({ target: { files: [file] } });
+            });
+
+            function handleFile(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Validate file type
+                if (!file.type.match('image.*') && !file.type.match('video.*')) {
+                    showError('Please upload an image or video file');
+                    return;
+                }
+
+                // Clear previous results
+                clearResults();
+
+                // Show preview
+                if (file.type.match('image.*')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.innerHTML = `<img src="${e.target.result}" class="preview-image">`;
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.innerHTML = `<div class="alert alert-info">Video file selected: ${file.name}</div>`;
+                }
+
+                // Simulate analysis
+                analyzeMedia(file);
+            }
+
+            function analyzeMedia(file) {
+                loadingSpinner.style.display = 'block';
+                
+                // Simulate API call
+                setTimeout(() => {
+                    loadingSpinner.style.display = 'none';
+                    
+                    // Simulate results
+                    const confidence = Math.random() * 100;
+                    showResults({
+                        confidence: confidence.toFixed(1),
+                        isDeepfake: confidence > 50,
+                        anomalies: confidence > 50 ? [
+                            'Irregular facial features detected',
+                            'Inconsistent lighting patterns',
+                            'Unnatural blinking patterns'
+                        ] : []
+                    });
+                }, 2000);
+            }
+
+            function showResults(results) {
+                resultCard.style.display = 'block';
+                confidenceBar.style.width = `${results.confidence}%`;
+                confidenceScore.textContent = results.confidence;
+
+                let detailsHTML = `
+                    <div class="alert ${results.isDeepfake ? 'alert-danger' : 'alert-success'} mt-3">
+                        <h6 class="alert-heading">
+                            <i class="fas ${results.isDeepfake ? 'fa-exclamation-triangle' : 'fa-check-circle'} me-2"></i>
+                            ${results.isDeepfake ? 'Potential Deepfake Detected' : 'Likely Authentic Media'}
+                        </h6>
+                `;
+
+                if (results.anomalies.length > 0) {
+                    detailsHTML += `
+                        <hr>
+                        <p class="mb-0">Detected Anomalies:</p>
+                        <ul class="mb-0">
+                            ${results.anomalies.map(anomaly => `<li>${anomaly}</li>`).join('')}
+                        </ul>
+                    `;
+                }
+
+                detailsHTML += '</div>';
+                resultDetails.innerHTML = detailsHTML;
+            }
+
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorAlert.style.display = 'block';
+                setTimeout(() => {
+                    errorAlert.style.display = 'none';
+                }, 3000);
+            }
+
+            function clearResults() {
+                resultCard.style.display = 'none';
+                errorAlert.style.display = 'none';
+                loadingSpinner.style.display = 'none';
+                confidenceBar.style.width = '0%';
+                confidenceScore.textContent = '0';
+                resultDetails.innerHTML = '';
+            }
+        });
+    </script>
+</body>
+</html>
